@@ -10,6 +10,7 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
+from lib.dataset.build import make_dataloader_target
 import os
 import pprint
 import shutil
@@ -32,7 +33,7 @@ import models
 from config import cfg
 from config import update_config
 from core.loss import MultiLossFactory
-from core.trainer import do_train
+from core.trainer import do_train_da
 from dataset import make_dataloader
 from fp16_utils.fp16util import network_to_half
 from fp16_utils.fp16_optimizer import FP16_Optimizer
@@ -238,6 +239,10 @@ def main_worker(
     )
     logger.info(train_loader.dataset)
 
+    train_target_loader = make_dataloader_target(
+        cfg, is_train=True, distributed=args.distributed
+    )
+
     best_perf = -1
     best_model = False
     last_epoch = -1
@@ -278,7 +283,7 @@ def main_worker(
 
     for epoch in range(begin_epoch, cfg.TRAIN.END_EPOCH):
         # train one epoch
-        do_train(cfg, model, train_loader, loss_factory, optimizer, epoch,
+        do_train_da(cfg, model, train_loader, train_target_loader, loss_factory, optimizer, epoch,
                  final_output_dir, tb_log_dir, writer_dict, fp16=cfg.FP16.ENABLED)
 
         # In PyTorch 1.1.0 and later, you should call `lr_scheduler.step()` after `optimizer.step()`.
