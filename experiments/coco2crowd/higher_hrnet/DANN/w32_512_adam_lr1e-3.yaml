@@ -42,6 +42,7 @@ TARGET_DATASET:
   MAX_TRANSLATE: 40
   MIN_SCALE: 0.75
   NUM_JOINTS: 14
+  INFERENCE_CHANNEL: [0,1,2,3,4,5,6,7,8,9,10,11]
   ROOT: 'data/crowd_pose'
   TEST: test
   TRAIN: trainval
@@ -117,6 +118,7 @@ MODEL:
   INIT_WEIGHTS: True
   NAME: pose_higher_hrnet
   NUM_JOINTS: 12
+  TRAIN_CHANNLE: [5,6,7,8,9,10,11,12,13,14,15,16]
   PRETRAINED: 'models/pytorch/imagenet/hrnet_w32-36af842e.pth'
   TAG_PER_JOINT: True
 DOMAIN_MODEL:

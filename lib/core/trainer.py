@@ -157,9 +157,9 @@ def do_train_da(cfg, model, data_loader, data_target_loader, loss_factory, optim
         outputs, source_feats = model(images)
         target_outputs, target_feats = model(images_target)
 
-        heatmaps = list(map(lambda x: x.cuda(non_blocking=True), heatmaps))
-        masks = list(map(lambda x: x.cuda(non_blocking=True), masks))
-        joints = list(map(lambda x: x.cuda(non_blocking=True), joints))
+        heatmaps = list(map(lambda x: x[:, cfg.MODEL.TRAIN_CHANNEL,:,:].cuda(non_blocking=True), heatmaps))
+        masks = list(map(lambda x: x[:, cfg.MODEL.TRAIN_CHANNEL,:,:].cuda(non_blocking=True), masks))
+        joints = list(map(lambda x: x[:, cfg.MODEL.TRAIN_CHANNEL,:,:].cuda(non_blocking=True), joints))
 
         # pose loss
         heatmaps_losses, push_losses, pull_losses = \

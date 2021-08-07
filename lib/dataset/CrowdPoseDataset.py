@@ -40,7 +40,7 @@ class CrowdPoseDataset(Dataset):
             target and transforms it.
     """
 
-    def __init__(self, root, dataset, data_format, transform=None,
+    def __init__(self, cfg, root, dataset, data_format, source=True, transform=None,
                  target_transform=None):
         # from crowdposetools.coco import COCO
         self.name = 'CROWDPOSE'
@@ -65,6 +65,18 @@ class CrowdPoseDataset(Dataset):
                 for cls in self.classes[1:]
             ]
         )
+
+        self.sigmas = np.array([
+            .79, .79, .72, .72, .62, .62, 1.07, 1.07, .87, .87, .89, .89, .79,
+            .79
+        ]) / 10.0
+
+        if source:
+            self.inference_channel = cfg.DATASET.INFERENCE_CHANNEL
+            self.num_joints = cfg.DATASET.NUM_JOINTS
+        else:
+            self.inference_channel = cfg.TARGET_DATASET.INFERENCE_CHANNEL
+            self.num_joints = cfg.TARGET_DATASET.NUM_JOINTS
 
     def _get_anno_file_name(self):
         # example: root/json/crowdpose_{train,val,test}.json
@@ -175,6 +187,11 @@ class CrowdPoseDataset(Dataset):
                 # if self.with_center:
                 if cfg.DATASET.WITH_CENTER and not cfg.TEST.IGNORE_CENTER:
                     kpt = kpt[:-1]
+                
+                if len(self.inference_channel) < self.num_joints:
+                    tmp_kpt = np.zeros([self.num_joints, kpt.shape[1]])
+                    tmp_kpt[self.inference_channel] = kpt
+                    kpt = tmp_kpt
 
                 kpts[int(file_name.split('.')[0])].append(
                     {
@@ -282,7 +299,7 @@ class CrowdPoseDataset(Dataset):
 
     def _do_python_keypoint_eval(self, res_file, res_folder):
         coco_dt = self.coco.loadRes(res_file)
-        coco_eval = COCOeval(self.coco, coco_dt, 'keypoints')
+        coco_eval = COCOeval(self.coco, coco_dt, 'keypoints', self.sigmas, use_area=False)
         coco_eval.params.useSegm = None
         coco_eval.evaluate()
         coco_eval.accumulate()

@@ -25,30 +25,50 @@ logger = logging.getLogger(__name__)
 class CocoKeypoints(CocoDataset):
     def __init__(self,
                  cfg,
+                 root,
                  dataset_name,
+                 data_format,
                  remove_images_without_annotations,
                  heatmap_generator,
                  joints_generator,
+                 source=True,
                  transforms=None):
-        super().__init__(cfg.DATASET.ROOT,
+        super().__init__(cfg, root,
                          dataset_name,
-                         cfg.DATASET.DATA_FORMAT)
+                         data_format, source)
 
-        if cfg.DATASET.WITH_CENTER:
-            assert cfg.DATASET.NUM_JOINTS == 18, 'Number of joint with center for COCO is 18'
+        if source:
+            if cfg.DATASET.WITH_CENTER:
+                assert cfg.DATASET.NUM_JOINTS == 18, 'Number of joint with center for COCO is 18'
+            else:
+                assert cfg.DATASET.NUM_JOINTS == 17, 'Number of joint for COCO is 17'
+
+            self.num_scales = self._init_check(heatmap_generator, joints_generator)
+
+            self.num_joints = cfg.DATASET.NUM_JOINTS
+            self.with_center = cfg.DATASET.WITH_CENTER
+            self.num_joints_without_center = self.num_joints - 1 \
+                if self.with_center else self.num_joints
+            self.scale_aware_sigma = cfg.DATASET.SCALE_AWARE_SIGMA
+            self.base_sigma = cfg.DATASET.BASE_SIGMA
+            self.base_size = cfg.DATASET.BASE_SIZE
+            self.int_sigma = cfg.DATASET.INT_SIGMA
         else:
-            assert cfg.DATASET.NUM_JOINTS == 17, 'Number of joint for COCO is 17'
+            if cfg.TARGET_DATASET.WITH_CENTER:
+                assert cfg.TARGET_DATASET.NUM_JOINTS == 18, 'Number of joint with center for COCO is 18'
+            else:
+                assert cfg.TARGET_DATASET.NUM_JOINTS == 17, 'Number of joint for COCO is 17'
 
-        self.num_scales = self._init_check(heatmap_generator, joints_generator)
+            self.num_scales = self._init_check(heatmap_generator, joints_generator)
 
-        self.num_joints = cfg.DATASET.NUM_JOINTS
-        self.with_center = cfg.DATASET.WITH_CENTER
-        self.num_joints_without_center = self.num_joints - 1 \
-            if self.with_center else self.num_joints
-        self.scale_aware_sigma = cfg.DATASET.SCALE_AWARE_SIGMA
-        self.base_sigma = cfg.DATASET.BASE_SIGMA
-        self.base_size = cfg.DATASET.BASE_SIZE
-        self.int_sigma = cfg.DATASET.INT_SIGMA
+            self.num_joints = cfg.TARGET_DATASET.NUM_JOINTS
+            self.with_center = cfg.TARGET_DATASET.WITH_CENTER
+            self.num_joints_without_center = self.num_joints - 1 \
+                if self.with_center else self.num_joints
+            self.scale_aware_sigma = cfg.TARGET_DATASET.SCALE_AWARE_SIGMA
+            self.base_sigma = cfg.TARGET_DATASET.BASE_SIGMA
+            self.base_size = cfg.TARGET_DATASET.BASE_SIZE
+            self.int_sigma = cfg.TARGET_DATASET.INT_SIGMA
 
         if remove_images_without_annotations:
             self.ids = [

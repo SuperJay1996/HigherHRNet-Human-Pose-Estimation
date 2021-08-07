@@ -47,11 +47,14 @@ def build_dataset(cfg, is_train):
 
     dataset = eval(cfg.DATASET.DATASET)(
         cfg,
+        cfg.DATASET.ROOT,
         dataset_name,
+        cfg.DATASET.DATA_FORMAT,
         is_train,
         heatmap_generator,
         joints_generator,
-        transforms
+        source=True,
+        transforms=transforms
     )
 
     return dataset
@@ -113,11 +116,14 @@ def build_dataset_target(cfg, is_train):
 
     dataset = eval(cfg.TARGET_DATASET.DATASET)(
         cfg,
+        cfg.TARGET_DATASET.ROOT,
         dataset_name,
+        cfg.TARGET_DATASET.DATA_FORMAT,
         is_train,
         heatmap_generator,
         joints_generator,
-        transforms
+        source=False,
+        transforms=transforms,
     )
 
     return dataset

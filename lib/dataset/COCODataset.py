@@ -42,7 +42,7 @@ class CocoDataset(Dataset):
             target and transforms it.
     """
 
-    def __init__(self, root, dataset, data_format, transform=None,
+    def __init__(self, cfg, root, dataset, data_format, source=True, transform=None,
                  target_transform=None):
         # from pycocotools.coco import COCO
         self.name = 'COCO'
@@ -72,6 +72,13 @@ class CocoDataset(Dataset):
             .26, .25, .25, .35, .35, .79, .79, .72, .72, .62, .62, 1.07, 1.07,
             .87, .87, .89, .89
         ]) / 10.0
+
+        if source:
+            self.inference_channel = cfg.DATASET.INFERENCE_CHANNEL
+            self.num_joints = cfg.DATASET.NUM_JOINTS
+        else:
+            self.inference_channel = cfg.TARGET_DATASET.INFERENCE_CHANNEL
+            self.num_joints = cfg.TARGET_DATASET.NUM_JOINTS
 
     def _get_anno_file_name(self):
         # example: root/annotations/person_keypoints_tran2017.json
@@ -193,6 +200,11 @@ class CocoDataset(Dataset):
                 # if self.with_center:
                 if cfg.DATASET.WITH_CENTER and not cfg.TEST.IGNORE_CENTER:
                     kpt = kpt[:-1]
+                
+                if len(self.inference_channel) < self.num_joints:
+                    tmp_kpt = np.zeros([self.num_joints, kpt.shape[1]])
+                    tmp_kpt[self.inference_channel] = kpt
+                    kpt = tmp_kpt
 
                 kpts[int(file_name[-16:-4])].append(
                     {
