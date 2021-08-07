@@ -11,3 +11,4 @@ yacs
 cffi
 munkres
 tqdm
+xtcocotools>=1.8
