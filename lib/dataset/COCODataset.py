@@ -16,11 +16,14 @@ import os
 import os.path
 
 import cv2
-import json_tricks as json
+# import json_tricks as json
+import json
 import numpy as np
 from torch.utils.data import Dataset
 
-from pycocotools.cocoeval import COCOeval
+# from pycocotools.cocoeval import COCOeval
+from xtcocotools.coco import COCO
+from xtcocotools.cocoeval import COCOeval
 from utils import zipreader
 
 logger = logging.getLogger(__name__)
@@ -41,7 +44,7 @@ class CocoDataset(Dataset):
 
     def __init__(self, root, dataset, data_format, transform=None,
                  target_transform=None):
-        from pycocotools.coco import COCO
+        # from pycocotools.coco import COCO
         self.name = 'COCO'
         self.root = root
         self.dataset = dataset
@@ -64,6 +67,11 @@ class CocoDataset(Dataset):
                 for cls in self.classes[1:]
             ]
         )
+
+        self.sigmas = np.array([
+            .26, .25, .25, .35, .35, .79, .79, .72, .72, .62, .62, 1.07, 1.07,
+            .87, .87, .89, .89
+        ]) / 10.0
 
     def _get_anno_file_name(self):
         # example: root/annotations/person_keypoints_tran2017.json
@@ -294,7 +302,7 @@ class CocoDataset(Dataset):
 
     def _do_python_keypoint_eval(self, res_file, res_folder):
         coco_dt = self.coco.loadRes(res_file)
-        coco_eval = COCOeval(self.coco, coco_dt, 'keypoints')
+        coco_eval = COCOeval(self.coco, coco_dt, 'keypoints', self.sigmas)
         coco_eval.params.useSegm = None
         coco_eval.evaluate()
         coco_eval.accumulate()

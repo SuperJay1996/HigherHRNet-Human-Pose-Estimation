@@ -13,7 +13,8 @@ import logging
 
 import numpy as np
 
-import pycocotools
+# import pycocotools
+import xtcocotools as pycocotools
 from .COCODataset import CocoDataset
 from .target_generators import HeatmapGenerator
 

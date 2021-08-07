@@ -19,7 +19,9 @@ import json_tricks as json
 import numpy as np
 from torch.utils.data import Dataset
 
-from crowdposetools.cocoeval import COCOeval
+# from crowdposetools.cocoeval import COCOeval
+from xtcocotools.cocoeval import COCOeval
+from xtcocotools.coco import COCO
 from utils import zipreader
 
 logger = logging.getLogger(__name__)
@@ -40,7 +42,7 @@ class CrowdPoseDataset(Dataset):
 
     def __init__(self, root, dataset, data_format, transform=None,
                  target_transform=None):
-        from crowdposetools.coco import COCO
+        # from crowdposetools.coco import COCO
         self.name = 'CROWDPOSE'
         self.root = root
         self.dataset = dataset

@@ -9,3 +9,5 @@ from __future__ import division
 from __future__ import print_function
 
 import models.pose_higher_hrnet
+import models.pose_higher_hrnet_dann
+import models.DANN

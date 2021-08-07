@@ -12,7 +12,8 @@ import logging
 
 import numpy as np
 
-import crowdposetools
+# import crowdposetools
+import xtcocotools
 from .CrowdPoseDataset import CrowdPoseDataset
 from .target_generators import HeatmapGenerator
 

@@ -71,6 +71,47 @@ def create_logger(cfg, cfg_name, phase='train'):
 
     return logger, str(final_output_dir), str(tensorboard_log_dir)
 
+def create_logger_da(cfg, cfg_name, phase='train'):
+    root_output_dir = Path(cfg.OUTPUT_DIR)
+    # set up logger
+    if not root_output_dir.exists() and cfg.RANK == 0:
+        print('=> creating {}'.format(root_output_dir))
+        root_output_dir.mkdir()
+    else:
+        while not root_output_dir.exists():
+            print('=> wait for {} created'.format(root_output_dir))
+            time.sleep(30)
+
+    dataset = cfg.DATASET.DATASET
+    dataset = dataset.replace(':', '_')
+    target_dataset = cfg.TARGET_DATASET.DATASET
+    target_dataset = target_dataset.replace(':', '_')
+    model = cfg.MODEL.NAME
+    da_model = cfg.DOMAIN_MODEL.NAME
+    total_model = cfg.TOTAL_MODEL.NAME
+    cfg_name = os.path.basename(cfg_name).split('.')[0]
+
+    # final_output_dir = root_output_dir / dataset / model / cfg_name
+    final_output_dir = root_output_dir / total_model / model / da_model / dataset / target_dataset / cfg_name
+
+    if cfg.RANK == 0:
+        print('=> creating {}'.format(final_output_dir))
+        final_output_dir.mkdir(parents=True, exist_ok=True)
+    else:
+        while not final_output_dir.exists():
+            print('=> wait for {} created'.format(final_output_dir))
+            time.sleep(5)
+
+    logger, time_str = setup_logger(final_output_dir, cfg.RANK, phase)
+
+    tensorboard_log_dir = Path(cfg.LOG_DIR) / dataset / model / \
+        (cfg_name + '_' + time_str)
+
+    print('=> creating {}'.format(tensorboard_log_dir))
+    tensorboard_log_dir.mkdir(parents=True, exist_ok=True)
+
+    return logger, str(final_output_dir), str(tensorboard_log_dir)
+
 
 def get_optimizer(cfg, model):
     optimizer = None
