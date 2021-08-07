@@ -79,11 +79,11 @@ class CrowdPoseDataset(Dataset):
             self.num_joints = cfg.TARGET_DATASET.NUM_JOINTS
 
     def _get_anno_file_name(self):
-        # example: root/json/crowdpose_{train,val,test}.json
+        # example: root/crowdpose_annotations/mmpose_crowdpose_{train,val,test}.json
         return os.path.join(
             self.root,
-            'json',
-            'crowdpose_{}.json'.format(
+            'crowdpose_annotations',
+            'mmpose_crowdpose_{}.json'.format(
                 self.dataset
             )
         )

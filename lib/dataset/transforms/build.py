@@ -28,18 +28,28 @@ FLIP_CONFIG = {
 }
 
 
-def build_transforms(cfg, is_train=True):
+def build_transforms(cfg, is_train=True, source=True):
     assert is_train is True, 'Please only use build_transforms for training.'
     assert isinstance(cfg.DATASET.OUTPUT_SIZE, (list, tuple)), 'DATASET.OUTPUT_SIZE should be list or tuple'
     if is_train:
-        max_rotation = cfg.DATASET.MAX_ROTATION
-        min_scale = cfg.DATASET.MIN_SCALE
-        max_scale = cfg.DATASET.MAX_SCALE
-        max_translate = cfg.DATASET.MAX_TRANSLATE
-        input_size = cfg.DATASET.INPUT_SIZE
-        output_size = cfg.DATASET.OUTPUT_SIZE
-        flip = cfg.DATASET.FLIP
-        scale_type = cfg.DATASET.SCALE_TYPE
+        if source:
+            max_rotation = cfg.DATASET.MAX_ROTATION
+            min_scale = cfg.DATASET.MIN_SCALE
+            max_scale = cfg.DATASET.MAX_SCALE
+            max_translate = cfg.DATASET.MAX_TRANSLATE
+            input_size = cfg.DATASET.INPUT_SIZE
+            output_size = cfg.DATASET.OUTPUT_SIZE
+            flip = cfg.DATASET.FLIP
+            scale_type = cfg.DATASET.SCALE_TYPE
+        else:
+            max_rotation = cfg.TARGET_DATASET.MAX_ROTATION
+            min_scale = cfg.TARGET_DATASET.MIN_SCALE
+            max_scale = cfg.TARGET_DATASET.MAX_SCALE
+            max_translate = cfg.TARGET_DATASET.MAX_TRANSLATE
+            input_size = cfg.TARGET_DATASET.INPUT_SIZE
+            output_size = cfg.TARGET_DATASET.OUTPUT_SIZE
+            flip = cfg.TARGET_DATASET.FLIP
+            scale_type = cfg.TARGET_DATASET.SCALE_TYPE           
     else:
         scale_type = cfg.DATASET.SCALE_TYPE
         max_rotation = 0
@@ -53,12 +63,20 @@ def build_transforms(cfg, is_train=True):
     # coco_flip_index = [0, 2, 1, 4, 3, 6, 5, 8, 7, 10, 9, 12, 11, 14, 13, 16, 15]
     # if cfg.DATASET.WITH_CENTER:
         # coco_flip_index.append(17)
-    if 'coco' in cfg.DATASET.DATASET:
-        dataset_name = 'COCO'
-    elif 'crowd_pose' in cfg.DATASET.DATASET:
-        dataset_name = 'CROWDPOSE'
+    if source:
+        if 'coco' in cfg.DATASET.DATASET:
+            dataset_name = 'COCO'
+        elif 'crowd_pose' in cfg.DATASET.DATASET:
+            dataset_name = 'CROWDPOSE'
+        else:
+            raise ValueError('Please implement flip_index for new dataset: %s.' % cfg.DATASET.DATASET)
     else:
-        raise ValueError('Please implement flip_index for new dataset: %s.' % cfg.DATASET.DATASET)
+        if 'coco' in cfg.TARGET_DATASET.DATASET:
+            dataset_name = 'COCO'
+        elif 'crowd_pose' in cfg.TARGET_DATASET.DATASET:
+            dataset_name = 'CROWDPOSE'
+        else:
+            raise ValueError('Please implement flip_index for new dataset: %s.' % cfg.TARGET_DATASET.DATASET)
     if cfg.DATASET.WITH_CENTER:
         coco_flip_index = FLIP_CONFIG[dataset_name + '_WITH_CENTER']
     else:

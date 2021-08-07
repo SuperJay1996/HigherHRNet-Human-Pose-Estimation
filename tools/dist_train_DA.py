@@ -10,7 +10,6 @@ from __future__ import division
 from __future__ import print_function
 
 import argparse
-from lib.dataset.build import make_dataloader_target
 import os
 import pprint
 import shutil
@@ -34,7 +33,7 @@ from config import cfg
 from config import update_config
 from core.loss import MultiLossFactory
 from core.trainer import do_train_da
-from dataset import make_dataloader
+from dataset import make_dataloader, make_dataloader_target
 from fp16_utils.fp16util import network_to_half
 from fp16_utils.fp16_optimizer import FP16_Optimizer
 from utils.utils import create_logger_da
@@ -194,7 +193,7 @@ def main_worker(
         dump_input = torch.rand(
             (1, 3, cfg.DATASET.INPUT_SIZE, cfg.DATASET.INPUT_SIZE)
         )
-        writer_dict['writer'].add_graph(model, (dump_input, ))
+        # writer_dict['writer'].add_graph(model, (dump_input, ))
         # logger.info(get_model_summary(model, dump_input, verbose=cfg.VERBOSE))
 
     if cfg.FP16.ENABLED:
@@ -217,7 +216,7 @@ def main_worker(
             # ourselves based on the total number of GPUs we have
             # args.workers = int(args.workers / ngpus_per_node)
             model = torch.nn.parallel.DistributedDataParallel(
-                model, device_ids=[args.gpu]
+                model, device_ids=[args.gpu], #roadcast_buffers=False
             )
         else:
             model.cuda()
@@ -242,6 +241,7 @@ def main_worker(
     train_target_loader = make_dataloader_target(
         cfg, is_train=True, distributed=args.distributed
     )
+    logger.info(train_target_loader.dataset)
 
     best_perf = -1
     best_model = False

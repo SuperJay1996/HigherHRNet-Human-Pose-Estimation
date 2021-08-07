@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import os
 import logging
-from typing import ForwardRef
 
 import torch
 import torch.nn as nn
@@ -26,11 +25,12 @@ class PoseDAResNet(nn.Module):
         )
 
     def forward(self, x):
-        final_outputs, domain_feature = self.pose(x, domain=True)
+        final_outputs, domain_feature = self.pose(x)
         
-        domain_feature = self.DA(domain_feature)
+        domain_features = self.DA(domain_feature)
+        # print(domain_feature.shape)
 
-        return final_outputs, domain_feature
+        return final_outputs, domain_features
     
     def init_weights(self, pretrained='', verbose=True):
         logger.info('=> init weights from normal distribution')
@@ -75,7 +75,7 @@ class PoseDAResNet(nn.Module):
 
 
 def get_pose_net(cfg, is_train, **kwargs):
-    model = PoseDAResNet(cfg, **kwargs)
+    model = PoseDAResNet(cfg, is_train, **kwargs)
 
     if is_train and cfg.TOTAL_MODEL.INIT_WEIGHTS:
         model.init_weights(cfg.TOTAL_MODEL.PRETRAINED, verbose=cfg.VERBOSE)

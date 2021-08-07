@@ -4,9 +4,6 @@ from __future__ import print_function
 
 import os
 import logging
-from typing import ForwardRef
-from numpy.lib.arraypad import pad
-from numpy.lib.arraysetops import isin
 
 import torch
 import torch.nn as nn
@@ -55,10 +52,12 @@ class DANN(nn.Module):
 
         self.dc = nn.Sequential(
             nn.Conv2d(in_nc, mid_nc, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(mid_nc),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
             nn.Conv2d(mid_nc, mid_nc, kernel_size=3, stride=1, padding=1),
+            nn.BatchNorm2d(mid_nc),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
-            nn.Conv2d(mid_nc, num_classes, kernel_size=1, stride=1, padding=0)
+            nn.Conv2d(mid_nc, num_classes, kernel_size=3, stride=1, padding=1)
         )
 
     def forward(self, x):
@@ -68,7 +67,7 @@ class DANN(nn.Module):
 
     def init_weight(self):
         logger.info("=> init DANN weights from normal distribution!")
-        for m in self.modules:
+        for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.normal_(m.weight, std=0.001)
     

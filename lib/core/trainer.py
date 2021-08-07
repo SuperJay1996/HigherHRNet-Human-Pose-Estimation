@@ -140,7 +140,7 @@ def do_train_da(cfg, model, data_loader, data_target_loader, loss_factory, optim
     pull_loss_meter = [AverageMeter() for _ in range(cfg.LOSS.NUM_STAGES)]
     domain_loss_meter = [AverageMeter()]
 
-    domain_loss_weight = cfg.LOSS.DOAMIN_LOSS_FACTOR
+    domain_loss_weight = cfg.LOSS.DOMAIN_LOSS_FACTOR
 
     # switch to train mode
     model.train()
@@ -149,58 +149,77 @@ def do_train_da(cfg, model, data_loader, data_target_loader, loss_factory, optim
     iter_source, iter_target = iter(data_loader), iter(data_target_loader)
 
     end = time.time()
-    for i in range(n_batch):
+    for i in range(n_batch-1):
         images, heatmaps, masks, joints = next(iter_source)
         images_target, _, _, _ = next(iter_target)
+
         data_time.update(time.time() - end)
 
-        outputs, source_feats = model(images)
-        target_outputs, target_feats = model(images_target)
+        with torch.autograd.set_detect_anomaly(True):
+            b_s = images.size(0)
+            imgs = torch.cat((images, images_target),dim=0)
+            outputs_all, feats = model(imgs)
 
-        heatmaps = list(map(lambda x: x[:, cfg.MODEL.TRAIN_CHANNEL,:,:].cuda(non_blocking=True), heatmaps))
-        masks = list(map(lambda x: x[:, cfg.MODEL.TRAIN_CHANNEL,:,:].cuda(non_blocking=True), masks))
-        joints = list(map(lambda x: x[:, cfg.MODEL.TRAIN_CHANNEL,:,:].cuda(non_blocking=True), joints))
+            # outputs, _ = outputs_all.split(b_s, dim=0)
+            outputs = []
+            for output in outputs_all:
+                out, _ = output.split(b_s, dim=0)
+                outputs.append(out)
 
-        # pose loss
-        heatmaps_losses, push_losses, pull_losses = \
-            loss_factory(outputs, heatmaps, masks, joints)
+            source_feats, target_feats = feats.split(b_s, dim=0)
+            
+            # source_feats.sum.backward()
 
-        loss = 0
-        for idx in range(cfg.LOSS.NUM_STAGES):
-            if heatmaps_losses[idx] is not None:
-                heatmaps_loss = heatmaps_losses[idx].mean(dim=0)
-                heatmaps_loss_meter[idx].update(
-                    heatmaps_loss.item(), images.size(0)
-                )
-                loss = loss + heatmaps_loss
-                if push_losses[idx] is not None:
-                    push_loss = push_losses[idx].mean(dim=0)
-                    push_loss_meter[idx].update(
-                        push_loss.item(), images.size(0)
+            # target_outputs, target_feats = model(images_target)
+            # import pdb;pdb.set_trace()
+
+            heatmaps = list(map(lambda x: x[:, cfg.MODEL.TRAIN_CHANNEL,:,:].cuda(non_blocking=True), heatmaps))
+            masks = list(map(lambda x: x.cuda(non_blocking=True), masks))
+            joints = list(map(lambda x: x[:, cfg.MODEL.TRAIN_CHANNEL, :].cuda(non_blocking=True), joints))
+
+
+            # pose loss
+            heatmaps_losses, push_losses, pull_losses = \
+                loss_factory(outputs, heatmaps, masks, joints)
+
+            loss = 0
+            for idx in range(cfg.LOSS.NUM_STAGES):
+                if heatmaps_losses[idx] is not None:
+                    heatmaps_loss = heatmaps_losses[idx].mean(dim=0)
+                    heatmaps_loss_meter[idx].update(
+                        heatmaps_loss.item(), images.size(0)
                     )
-                    loss = loss + push_loss
-                if pull_losses[idx] is not None:
-                    pull_loss = pull_losses[idx].mean(dim=0)
-                    pull_loss_meter[idx].update(
-                        pull_loss.item(), images.size(0)
-                    )
-                    loss = loss + pull_loss
+                    loss = loss + heatmaps_loss
+                    if push_losses[idx] is not None:
+                        push_loss = push_losses[idx].mean(dim=0)
+                        push_loss_meter[idx].update(
+                            push_loss.item(), images.size(0)
+                        )
+                        loss = loss + push_loss
+                    if pull_losses[idx] is not None:
+                        pull_loss = pull_losses[idx].mean(dim=0)
+                        pull_loss_meter[idx].update(
+                            pull_loss.item(), images.size(0)
+                        )
+                        loss = loss + pull_loss
 
-        source_label = torch.ones_like(source_feats).cuda(non_blocking=True)
-        domain_loss_source = F.binary_cross_entroph_with_logits(source_feats, source_label)
-        target_label = torch.zeros_like(target_feats).cuda(non_blocking=True)
-        domain_loss_target = F.binary_cross_entropy_with_logits(target_feats, target_label)
-        domain_loss = 0.5 * domain_loss_weight[0] * (domain_loss_source + domain_loss_target)
-        domain_loss_meter[0].update(domain_loss, images.size(0))
-        loss = loss + domain_loss
+            source_label = torch.ones_like(source_feats).cuda(non_blocking=True)
+            domain_loss_source = F.binary_cross_entropy_with_logits(source_feats, source_label)
+            target_label = torch.zeros_like(target_feats).cuda(non_blocking=True)
+            domain_loss_target = F.binary_cross_entropy_with_logits(target_feats, target_label)
 
-        # compute gradient and do update step
-        optimizer.zero_grad()
-        if fp16:
-            optimizer.backward(loss)
-        else:
-            loss.backward()
-        optimizer.step()
+            domain_loss = 0.5 * domain_loss_weight[0] * (domain_loss_source + domain_loss_target)
+            # domain_loss = domain_loss_weight[0] * domain_loss_source
+            domain_loss_meter[0].update(domain_loss, images.size(0))
+            loss = loss + domain_loss
+
+            # compute gradient and do update step
+            optimizer.zero_grad()
+            if fp16:
+                optimizer.backward(loss)
+            else:
+                loss.backward()
+            optimizer.step()
 
         # measure elapsed time
         batch_time.update(time.time() - end)
@@ -212,7 +231,7 @@ def do_train_da(cfg, model, data_loader, data_target_loader, loss_factory, optim
                   'Speed: {speed:.1f} samples/s\t' \
                   'Data: {data_time.val:.3f}s ({data_time.avg:.3f}s)\t' \
                   '{heatmaps_loss}{push_loss}{pull_loss}{domain_loss}'.format(
-                      epoch, i, len(data_loader),
+                      epoch, i, n_batch,
                       batch_time=batch_time,
                       speed=images.size(0)/batch_time.val,
                       data_time=data_time,

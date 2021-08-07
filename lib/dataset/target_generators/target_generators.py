@@ -90,26 +90,38 @@ class ScaleAwareHeatmapGenerator():
 
 
 class JointsGenerator():
-    def __init__(self, max_num_people, num_joints, output_res, tag_per_joint):
+    def __init__(self, max_num_people, num_joints, output_res, tag_per_joint, inference):
         self.max_num_people = max_num_people
         self.num_joints = num_joints
         self.output_res = output_res
         self.tag_per_joint = tag_per_joint
+        self.inference = inference
 
     def __call__(self, joints):
         visible_nodes = np.zeros((self.max_num_people, self.num_joints, 2))
         output_res = self.output_res
         for i in range(len(joints)):
-            tot = 0
-            for idx, pt in enumerate(joints[i]):
-                x, y = int(pt[0]), int(pt[1])
-                if pt[2] > 0 and x >= 0 and y >= 0 \
+            # tot = 0
+            for idx in self.inference:
+                x, y = int(joints[i][idx][0]), int(joints[i][idx][1])
+                if joints[i][idx][2] > 0 and x >= 0 and y >= 0 \
                    and x < self.output_res and y < self.output_res:
                     if self.tag_per_joint:
-                        visible_nodes[i][tot] = \
-                            (idx * output_res**2 + y * output_res + x, 1)
+                        visible_nodes[i][idx] = \
+                            ((idx-5) * output_res**2 + y * output_res + x, 1)
                     else:
-                        visible_nodes[i][tot] = \
+                        visible_nodes[i][idx] = \
                             (y * output_res + x, 1)
-                    tot += 1
+                    # tot += 1
+            # for idx, pt in enumerate(joints[i]):
+            #     x, y = int(pt[0]), int(pt[1])
+            #     if pt[2] > 0 and x >= 0 and y >= 0 \
+            #        and x < self.output_res and y < self.output_res:
+            #         if self.tag_per_joint:
+            #             visible_nodes[i][tot] = \
+            #                 (idx * output_res**2 + y * output_res + x, 1)
+            #         else:
+            #             visible_nodes[i][tot] = \
+            #                 (y * output_res + x, 1)
+            #         tot += 1
         return visible_nodes

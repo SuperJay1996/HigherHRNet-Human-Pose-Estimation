@@ -39,7 +39,8 @@ def build_dataset(cfg, is_train):
             cfg.DATASET.MAX_NUM_PEOPLE,
             cfg.DATASET.NUM_JOINTS,
             output_size,
-            cfg.MODEL.TAG_PER_JOINT
+            cfg.MODEL.TAG_PER_JOINT,
+            cfg.DATASET.INFERENCE_CHANNEL,
         ) for output_size in cfg.DATASET.OUTPUT_SIZE
     ]
 
@@ -91,7 +92,8 @@ def make_dataloader(cfg, is_train=True, distributed=False):
     return data_loader
 
 def build_dataset_target(cfg, is_train):
-    transforms = build_transforms(cfg, is_train)
+    transforms = build_transforms(cfg, is_train, source=False)
+    # transforms = None
 
     if cfg.DATASET.SCALE_AWARE_SIGMA:
         _HeatmapGenerator = ScaleAwareHeatmapGenerator
@@ -108,7 +110,8 @@ def build_dataset_target(cfg, is_train):
             cfg.TARGET_DATASET.MAX_NUM_PEOPLE,
             cfg.TARGET_DATASET.NUM_JOINTS,
             output_size,
-            cfg.MODEL.TAG_PER_JOINT
+            cfg.MODEL.TAG_PER_JOINT,
+            cfg.TARGET_DATASET.INFERENCE_CHANNEL,
         ) for output_size in cfg.TARGET_DATASET.OUTPUT_SIZE
     ]
 

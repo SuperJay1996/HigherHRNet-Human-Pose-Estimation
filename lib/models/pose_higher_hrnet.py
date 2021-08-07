@@ -509,9 +509,9 @@ class PoseHigherResolutionNet(nn.Module):
         y = self.final_layers[0](x)
         final_outputs.append(y)
 
-        if domain:
-            domain_feature = []
-            domain_feature.append(x)
+        # if domain:
+        domain_feature = y_list[0].clone()
+            # domain_feature.append(x)
 
         for i in range(self.num_deconvs):
             if self.deconv_config.CAT_OUTPUT[i]:
@@ -520,10 +520,10 @@ class PoseHigherResolutionNet(nn.Module):
             x = self.deconv_layers[i](x)
             y = self.final_layers[i+1](x)
             final_outputs.append(y)
-        if domain:
-            return final_outputs, domain_feature
-        else:
-            return final_outputs
+        # if domain:
+        return final_outputs, domain_feature
+        # else:
+        # return final_outputs
 
     def init_weights(self, pretrained='', verbose=True):
         logger.info('=> init weights from normal distribution')
